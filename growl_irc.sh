@@ -1,8 +1,14 @@
 #!/bin/bash
+# irssi-annoyatron: a notification system for your irssi IRC messages,
+#                   featuring both growl AND SMS notifications
+#
+# Based on http://justindow.com/2010/03/26/irssi-screen-and-growl-oh-my/
+
 # TODO: Make this zsh-exy.
 
 PHONE="8005551212"
 SSH_TARGET="burr@burr.ru"
+SEND_SMS=""
 
 
 # Kill all current fnotify sessions.
@@ -11,7 +17,7 @@ ps | awk fn_sessions | while read id; do kill $id; done
 
 # SSH to host, clear file and listen for notifications.
 (
-    ssh SSH_TARGET -o PermitLocalCommand=no \
+    ssh "${SSH_TARGET}" -o PermitLocalCommand=no \
         "> .irssi/fnotify; tail -f .irssi/fnotify" |
         while read heading message; do
             if [ ${heading:0:1} == '#' ]
@@ -25,8 +31,11 @@ ps | awk fn_sessions | while read id; do kill $id; done
             growlnotify -t "${heading}" -m "${growl_msg}"
 
             # I don't want to miss a thing! Send an SMS (using pygooglevoice).
-            #gvoice send_sms $PHONE "${sms_msg}" > /dev/null
+            if [ SEND_SMS ]
+                then
+                    gvoice send_sms $PHONE "${sms_msg}" > /dev/null
+            fi
         done
 )&
 
-ssh SSH_TARGET -t screen -raAd
+ssh "${SSH_TARGET}" -t screen -raAd
